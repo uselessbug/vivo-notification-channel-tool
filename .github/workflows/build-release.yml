@@ -27,12 +27,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Android SDK
+      - name: Install pinned Android SDK
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          sdkmanager --version
-      - name: Install pinned build tools
-        run: sdkmanager --install 'build-tools;36.0.0' 'platforms;android-36'
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 3 -type f -name sdkmanager -print -quit)"
+          test -n "$SDKMANAGER"
+          "$SDKMANAGER" --install 'build-tools;36.0.0' 'platforms;android-36'
       - name: Offline JVM behavioral tests
         run: bash scripts/test.sh
       - name: Build and verify
