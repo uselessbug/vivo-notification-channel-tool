@@ -1,0 +1,79 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional release tag (e.g. v0.1.0); blank = build only'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build DEX using Android D8
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install pinned build tools
+        run: sdkmanager --install 'build-tools;36.0.0' 'platforms;android-36'
+      - name: Offline JVM behavioral tests
+        run: bash scripts/test.sh
+      - name: Build and verify
+        run: bash scripts/build.sh
+      - name: Store CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vivo-development-mode-channel
+          path: |
+            dist/vivo-development-mode-channel.jar
+            dist/SHA256SUMS
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: ${{ startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.version != '') || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download built files
+        uses: actions/download-artifact@v4
+        with:
+          name: vivo-development-mode-channel
+          path: dist
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ (github.event_name == 'workflow_dispatch' && inputs.version) || (github.ref == 'refs/heads/main' && 'v0.1.0') || github.ref_name }}
+        run: |
+          set -Eeuo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; skipping."
+            exit 0
+          fi
+          gh release create "$RELEASE_TAG" \
+            dist/vivo-development-mode-channel.jar dist/SHA256SUMS \
+            --target "$GITHUB_SHA" \
+            --title "$RELEASE_TAG" \
+            --generate-notes

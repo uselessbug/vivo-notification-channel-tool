@@ -15,6 +15,6 @@ CLASSPATH=/data/local/tmp/vivo-nc.jar app_process /system/bin VivoNotificationCh
 
 仅修改 `com.vivo.daemonService` 的 `DEVELOPMENT_MODE` 渠道（`blockable=true`、`importance=0`）。原方案已在 vivo PD2502 / Android 17 实机验证；本仓库改用 D8 构建，使用隐藏 API，其他系统版本不保证兼容。
 
-构建：`bash scripts/test.sh && bash scripts/build.sh`（JDK 17、Android SDK API 36 / Build Tools 36.0.0、Python 3）。推送 `v*` 标签由 GitHub Actions 自动发布。
+构建：`bash scripts/test.sh && bash scripts/build.sh`（JDK 17、Android SDK API 36 / Build Tools 36.0.0、Python 3）。GitHub Actions 自动构建并发布首个 `v0.1.0`，后续推送 `v*` 标签发布新版本。
 
 MIT License.
