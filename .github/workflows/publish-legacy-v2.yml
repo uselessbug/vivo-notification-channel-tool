@@ -1,0 +1,40 @@
+name: Publish verified legacy v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-legacy-v2.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout archived binary
+        uses: actions/checkout@v4
+        with:
+          ref: legacy/v2
+          persist-credentials: false
+      - name: Check integrity and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -Eeuo pipefail
+          cd legacy
+          echo 'e4593a1fa55b51cc7ea6e0e47db4f21b92db4bf43b304e580dd01bcd0996a19b  vivo-development-mode-channel-v2.jar' | sha256sum -c -
+          printf '%s\n' 'e4593a1fa55b51cc7ea6e0e47db4f21b92db4bf43b304e580dd01bcd0996a19b  vivo-development-mode-channel-v2.jar' > SHA256SUMS
+          if gh release view v0.1.0-legacy-v2 >/dev/null 2>&1; then
+            echo "Legacy release exists, skipping."
+            exit 0
+          fi
+          gh release create v0.1.0-legacy-v2 \
+            vivo-development-mode-channel-v2.jar SHA256SUMS \
+            --target f7a3384b3f164be2b82e9b7dd0b56b49fa626e46 \
+            --title 'Legacy v2 (device verified)' \
+            --notes 'Original device-verified v2 DEX, preserved unchanged. Verified on vivo PD2502 / Android 17 using Shizuku Shell. This is an archival pre-release; the current release uses a standard D8 build.' \
+            --prerelease
