@@ -28,7 +28,9 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Android SDK
-        uses: android-actions/setup-android@v3
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          sdkmanager --version
       - name: Install pinned build tools
         run: sdkmanager --install 'build-tools;36.0.0' 'platforms;android-36'
       - name: Offline JVM behavioral tests
